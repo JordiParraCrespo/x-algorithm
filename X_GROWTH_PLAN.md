@@ -245,3 +245,99 @@ Tight AI-agent niche. Profile that converts. 1–3 spaced, high-quality posts/da
 **replies, reposts, shares, profile clicks, dwell** from a warm network in the
 first minutes to beat the out-of-network discount. Build in public for
 audience, publish client case studies for leads. Never spam, never bait mutes.
+
+---
+
+## 11. Budget & paid-growth plan ($100–300/mo, account @bc1pjordi)
+
+Current state (June 2026): @bc1pjordi · verified/Premium · 50 posts · 25
+followers · 478 following · building **astroignite.dev** (open-source
+tool/starter). Already posting on-niche (e.g. Claude Sonnet 5).
+
+### ROI ranking of spend
+1. **X Premium ($8/mo)** — already active. ~4x in-network / ~2x out-of-network
+   distribution boost; partially buys back the OON discount (`oon_scorer.rs`). Keep.
+2. **Amplify proven posts with X Ads ($80–150/mo)** — NOT follower campaigns
+   (they buy dead follows that drag your early-engagement velocity). Post
+   organically, find the 1–2 posts that already get real traction, promote
+   *those* to a tightly-targeted AI/dev audience. Paying to accelerate the
+   early-engagement burst the ranking model rewards. (No ad minimum; follower
+   campaigns run $1–2/follower, engagement ~$0.26–0.50/action — avoid the former.)
+3. **Niche giveaway (~$180, month 2–3)** — see below.
+
+### Monthly allocation
+| Item | Spend | Notes |
+|---|---|---|
+| X Premium | $8 | already paying |
+| Amplify 1 proven post | $80–150 | only once a post proves itself (month 2+) |
+| Bank toward giveaway | remainder | ~2 months → fund one giveaway |
+
+Months 1–2: ~$0 on ads (no proven posts, too few followers). 100% into the
+reply engine + banking cash. Month 2–3: begin amplification, then giveaway.
+
+### The Claude Code giveaway — designed as a targeting filter
+Generic follow+RT giveaways attract giveaway-hunters who never re-engage →
+trips the low-quality / negative signals the model punishes. A **Claude Code /
+Claude Pro prize is wanted only by AI-dev people, so the prize itself filters
+for your exact future audience and clients.**
+
+- **Timing:** month 2–3, once profile converts AND you have a base + ad budget
+  to push it. At 25 followers a giveaway reaches no one — giveaways amplify
+  existing reach, they don't create it.
+- **Entry (3 steps max):** Follow + Repost + **Reply with "what you'd build
+  with it."** The reply requirement forces a real signal (replies are
+  heavily weighted) and screens out pure hunters.
+- **Prize:** 3× Claude Pro, 3 months (~$60 each ≈ $180). Multiple smaller
+  winners = more shares than one big prize. Anthropic has no gift-sub
+  mechanism → reimburse winners / pay their plan as cash.
+- **Rules:** run 14–21 days, visual, `#giveaway` tag, "multiple accounts =
+  disqualified" (required by X policy). Free to enter (no purchase).
+- **"Coupon" idea, repurposed:** astroignite.dev is free/open-source, so
+  coupons don't fit. Swap for a **free 1:1 vibe-coding / agent-orchestration
+  session** for winners/runners-up — costs time not cash, and markets your
+  consultancy directly to everyone who entered.
+- **Amplify it** with ~$100–150 of the ad budget so it escapes your follower bubble.
+
+---
+
+## 12. Starter kit (paste-ready)
+
+### Bio (160-char limit)
+`I build & launch AI agent products — mine + clients'. Building astroignite.dev 🚀 Vibe-coding orchestration · Barcelona 🌍 · DMs open`
+
+Name field: `Jordi ⚡ AI agents`  ·  Header: a screenshot of astroignite.dev or an agent demo (replace the travel photo).
+
+### Pinned post
+```
+I help people build & launch AI agent products.
+
+Two things I do:
+→ Build my own — open-sourcing it at astroignite.dev
+→ Launch products for founders who want to ship fast
+
+I'll share everything I learn about agent orchestration here.
+
+Follow along 👇  DMs open if you want to build something.
+```
+
+### Week-1 posts (one/day, spaced; mix formats)
+1. **Build-in-public:** "Day 1 building astroignite.dev in public. The goal: [one-line what it does]. Here's the agent-orchestration decision I'm wrestling with today 👇 [screenshot]"
+2. **Teach:** "Most people wire up AI agents wrong. The fix isn't a bigger model — it's [specific pattern]. Here's how I structure an orchestration loop: [3-step thread]"
+3. **Take:** "Hot take: 90% of 'AI agents' are just a prompt in a while-loop. Real orchestration is [your stance]. Change my mind."
+4. **Question:** "Builders — what's your current agent stack? Drop it below. I'll share mine + what I'd change." (reply-driver)
+5. **Demo (video, 15–60s):** screen-record one thing astroignite does end-to-end. Caption: "Watch an agent [do X] in under a minute 🎥" (video = `vqv` eligible weight)
+6. **Story / why:** "I started a vibe-coding consultancy because [reason]. Building for myself when I can, launching products for others the rest of the time. Here's what I'm learning."
+7. **Utility / shareable:** "Save this: my checklist for shipping an AI agent product in a week. [carousel or thread]. Send it to a dev who's stuck 👇" (`share_via_dm`/`copy_link`)
+
+### Reply-target method (you have no partners yet — this builds them)
+- 70% of effort weeks 1–8 = **10–15 substantive replies/day**.
+- Find **mid-tier AI-agent accounts (5K–100K followers)** — relevant audience,
+  and your reply can still stand out (the sweet spot per 2026 playbooks).
+- Sourcing: X search for `AI agents`, `agent orchestration`, `vibe coding`,
+  `Claude Code`, `MCP`; sort by Latest + Top; follow who consistently posts
+  quality. Build a private list of ~30–50 and reply daily.
+- Reply with *substance* (add an insight, a counterpoint, a resource) — never
+  "great post 🔥". Substantive replies earn `profile_click`s from their
+  audience = free OON exposure, and warm the relationships that become your
+  future co-promoters and giveaway amplifiers.
+
