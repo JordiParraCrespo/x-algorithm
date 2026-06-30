@@ -1,0 +1,6 @@
+date,post_id,format,hook_type,topic,impressions,likes,replies,reposts,quotes,bookmarks,shares,profile_clicks,follows,video_views,avg_watch_seconds,video_length_seconds
+2026-06-23,111,video,result-first,build-in-public,4200,38,12,9,2,21,4,30,6,1800,28,40
+2026-06-24,112,thread,question,teach,3100,55,8,3,1,12,1,14,2,0,0,0
+2026-06-25,113,single,hot-take,take,900,40,2,1,0,3,0,5,0,0,0,0
+2026-06-26,114,question,question,build-in-public,1500,18,22,2,0,5,1,9,1,0,0,0
+2026-06-27,115,video,question,case-study,2600,22,5,6,1,15,3,19,4,1200,12,55
