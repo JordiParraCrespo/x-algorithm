@@ -1,10 +1,15 @@
 # X Growth Plan — AI Vibe-Coding Agent Orchestration Consultancy
 
-> Grounded in how the actual X "For You" algorithm in this repo ranks content
-> (see `home-mixer/scorers/weighted_scorer.rs`, `oon_scorer.rs`,
-> `author_diversity_scorer.rs`, and the `grox/` content-understanding
-> classifiers). This is not generic advice — every tactic below maps to a
-> mechanism in the code.
+> Grounded in how the actual X "For You" algorithm in this repo ranks content.
+> The **live** scoring path wires `PhoenixScorer → RankingScorer → VMRanker`
+> (`home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs:291`); the
+> active weighted/OON/diversity logic all lives in
+> `home-mixer/scorers/ranking_scorer.rs` (with DPP diversity in
+> `vm_ranker.rs`), plus the `grox/` content-understanding classifiers. (The
+> standalone `weighted_scorer.rs`, `oon_scorer.rs`, and
+> `author_diversity_scorer.rs` files are legacy/unwired — their mechanics were
+> folded into `ranking_scorer.rs`.) This is not generic advice — every tactic
+> below maps to a mechanism in the code.
 
 ---
 
@@ -27,11 +32,12 @@ material.
 X no longer uses hand-engineered features. A Grok-based transformer reads each
 user's **engagement history** and predicts a set of action probabilities for
 your post; a weighted sum of those probabilities is your score
-(`weighted_scorer.rs › compute_weighted_score`). Here's what the code predicts
+(`ranking_scorer.rs`, the active scorer). Here's what the code predicts
 and weights, and what it means for you.
 
 ### Positive signals the model predicts (and you should engineer for)
-From `candidate.rs › PhoenixScores` and `weighted_scorer.rs`:
+From `models/candidate.rs › PhoenixScores` and the active
+`scorers/ranking_scorer.rs` (`ScoringWeights`):
 
 | Predicted action | What it rewards | Your lever |
 |---|---|---|
@@ -39,33 +45,44 @@ From `candidate.rs › PhoenixScores` and `weighted_scorer.rs`:
 | `reply` | conversation | **ask questions, take stances** |
 | `retweet` / `quote` | endorsement + spread | make posts *quotable* (one strong claim) |
 | `share`, `share_via_dm`, `share_via_copy_link` | private sharing | "send this to a dev who…" / save-worthy utility |
-| `dwell_score` + `dwell_time` (continuous) | time spent reading | **threads, carousels, dense value** |
+| `dwell` + `cont_dwell_time` + `cont_click_dwell_time` | time spent reading | **threads, carousels, dense value** |
 | `click`, `quoted_click` | curiosity | strong hook first line |
 | `profile_click` | "who is this?" | **this is the follower funnel** |
 | `follow_author` | direct follow intent | clear niche + a reason to follow |
-| `vqv` (video quality view) | video watched | only counts for video > min duration (`vqv_weight_eligibility`) → **post real video** |
+| `vqv` / `quoted_vqv` (video quality view) | video watched | only counts for video > `min_video_duration_ms` → **post real video** |
 | `photo_expand` | image engagement | use images/diagrams |
 
+> Note: these weights are runtime feature-switch params (`FavoriteWeight`,
+> `ReplyWeight`, `RetweetWeight`, …) read by `RankingScorer::from_params`, so
+> the *exact* numeric coefficients aren't pinned in this repo and X can tune
+> them. The relative ordering below (replies/reposts/shares ≫ likes) reflects
+> publicly reported behavior, not hardcoded constants — treat it as directional.
+
 ### Negative signals that *subtract* from your score
-`not_interested`, `block_author`, `mute_author`, `report` all carry negative
-weights (`weighted_scorer.rs`). One mistake category: rage-bait that makes
-people mute you nets short-term replies but poisons your long-term score. Avoid
-content that triggers these.
+`not_interested`, `block_author`, `mute_author`, `report`, and `not_dwelled`
+all carry negative weights (`ranking_scorer.rs › negative_sum`). One mistake
+category: rage-bait that makes people mute you nets short-term replies but
+poisons your long-term score. Avoid content that triggers these. `not_dwelled`
+(scrolled past without reading) is its own penalty — another reason hooks matter.
 
 ### Three structural mechanics that change strategy
 
-1. **Out-of-network penalty (`oon_scorer.rs`).** Posts shown to people who
-   *don't* follow you are multiplied by `OON_WEIGHT_FACTOR` (a discount). To
-   escape your follower bubble and reach new people, your post must score high
-   *enough to overcome that discount* — which only happens when your existing
-   audience engages fast and hard. **Early engagement velocity from your
-   network is the gate to viral OON reach.** Implication: who follows you and
-   whether they reliably engage matters more than raw count.
+1. **Out-of-network penalty (`ranking_scorer.rs › effective_oon_weight`).**
+   Out-of-network candidates are multiplied by an OON factor before selection
+   (`Some(false) => after_diversity * effective_oon`). The factor comes from
+   topic / new-user params (`OonWeightFactor`, `TopicOonWeightFactor`,
+   `NEW_USER_OON_WEIGHT_FACTOR`) — note it is **not** tied to your subscription.
+   To escape your follower bubble, your post must score high enough to overcome
+   that discount — which happens when your existing audience engages fast and
+   hard. **Early engagement velocity from your network is the gate to OON
+   reach.** Who follows you and whether they reliably engage matters more than
+   raw count.
 
-2. **Author diversity decay (`author_diversity_scorer.rs`).** Within a single
-   feed, your 2nd, 3rd, 4th post is multiplied down by
-   `decay^position` toward a floor. Flooding the timeline has sharply
-   diminishing returns *per viewer*. **Space your posts out; don't dump.**
+2. **Author diversity decay (`ranking_scorer.rs › apply_author_diversity`,
+   plus DPP in `vm_ranker.rs`).** Within a single feed, your 2nd, 3rd, 4th post
+   is multiplied down by `decay^position` toward a floor (`AuthorDiversityDecay`
+   / `AuthorDiversityFloor`). Flooding the timeline has sharply diminishing
+   returns *per viewer*. **Space your posts out; don't dump.**
 
 3. **LLM quality + spam gates (`grox/`).**
    - `banger_initial_screen.py` runs a vision-LLM that assigns a
@@ -255,8 +272,14 @@ followers · 478 following · building **astroignite.dev** (open-source
 tool/starter). Already posting on-niche (e.g. Claude Sonnet 5).
 
 ### ROI ranking of spend
-1. **X Premium ($8/mo)** — already active. ~4x in-network / ~2x out-of-network
-   distribution boost; partially buys back the OON discount (`oon_scorer.rs`). Keep.
+1. **X Premium ($8/mo)** — already active; keep it. Caveat on *why*: the
+   reach-boost figures you'll see quoted online (e.g. "4x in-network / 2x OON")
+   are **not present in this repo's ranking code** — `subscription_level` only
+   appears in stats-logging and ads, and the OON factor is driven by
+   topic/new-user params, not subscription. So treat Premium's reach benefit as
+   *externally reported, unverified here*. Its concrete, verifiable value is the
+   verified badge, longer posts, edit, analytics, and reply visibility — worth
+   $8 regardless.
 2. **Amplify proven posts with X Ads ($80–150/mo)** — NOT follower campaigns
    (they buy dead follows that drag your early-engagement velocity). Post
    organically, find the 1–2 posts that already get real traction, promote
@@ -340,4 +363,103 @@ Follow along 👇  DMs open if you want to build something.
   "great post 🔥". Substantive replies earn `profile_click`s from their
   audience = free OON exposure, and warm the relationships that become your
   future co-promoters and giveaway amplifiers.
+
+---
+
+## 13. Self-improving content system (run on the numbers)
+
+The algorithm scores you on predicted engagement. You can't see its scores, but
+X analytics (you have Premium) exposes the public proxies. The system: **log
+every post → compute an Algo Score that mirrors `ranking_scorer.rs` → rank →
+extract what your winners have in common → do more of that → repeat weekly.**
+It's a closed loop that gets smarter every week because it learns from *your*
+audience, not generic advice.
+
+### The metric (mirrors the scorer's weighting)
+The scorer weights replies/reposts/shares/profile-clicks far above likes, with
+negatives for not-interested/mute/not-dwelled. So rank posts by an
+**engagement-quality score per 1,000 impressions** (normalizing for reach so a
+small post can still "win"):
+
+```
+AlgoScore/1k = ( w_reply·replies + w_repost·(reposts+quotes)
+              + w_share·(bookmarks+shares) + w_profile·profile_clicks
+              + w_follow·follows_from_post + w_like·likes
+              + w_video·video_completion% )  /  impressions · 1000
+```
+
+Default directional weights (tune as you learn — these are *not* the exact
+code coefficients, which are runtime params): `like=1, reply=14, repost=20,
+share=10, profile_click=12, follow=24, video_completion=8`. The point isn't
+precision; it's that ranking by this surfaces different (better) winners than
+ranking by likes.
+
+### Weekly loop (30 min, every Monday)
+1. **Log** the week's posts into the tracker (schema below) from X analytics.
+2. **Score & rank** with the optimizer script (`scripts/x_post_optimizer.py`).
+3. **Read the patterns it prints:** which *format* (video/thread/single/
+   question), *hook type*, *topic pillar*, and *post time* cluster at the top vs
+   bottom decile.
+4. **Form one hypothesis** ("video demos with a result-first hook beat threads
+   for me") and **change ONE variable** next week. One variable = clean signal.
+5. **Kill** the bottom-decile patterns; **double down** on the top-decile ones.
+6. **Re-score** next Monday. Over ~6 weeks your content converges on what *your*
+   audience + the algorithm reward.
+
+### Tracker schema (CSV the script reads)
+`date, post_id, format, hook_type, topic, impressions, likes, replies,
+reposts, quotes, bookmarks, shares, profile_clicks, follows, video_views,
+avg_watch_seconds, video_length_seconds`
+
+Two guardrails the system enforces (from the code):
+- **Watch the negatives.** If "not interested"/mutes show up in analytics on a
+  post, flag it — those carry negative weight and poison future reach.
+- **Don't optimize likes.** Likes are the weakest signal; the score deliberately
+  underweights them so you don't chase vanity.
+
+A runnable starter implementation lives at `scripts/x_post_optimizer.py`.
+
+---
+
+## 14. How to record the videos (the `vqv` signal)
+
+Video has its own weighted signal (`vqv`/`quoted_vqv`) but it **only counts once
+watch passes `min_video_duration_ms`** — and watch time / completion feeds
+dwell. So the job is: get them to start, and keep them past the threshold.
+
+### Specs
+- **Length:** 20–60s for a demo (long enough to clear the vqv threshold, short
+  enough to finish). You have Premium so longer is possible, but completion rate
+  drops fast — earn the length.
+- **Aspect ratio:** for screen/dev content, **16:9 landscape** (your audience is
+  on desktop) or **1:1 square**. Use 9:16 vertical only for talking-head/mobile-
+  first clips. 1080p minimum.
+- **Native upload only.** Upload the file directly to X — never post a YouTube/
+  external link as the main content; link posts get deprioritized vs native media.
+
+### Structure (the first 2 seconds decide everything)
+1. **0–2s — result first.** Open on the finished outcome ("this agent just
+   shipped a working app"), not setup. This drives the click + beats `not_dwelled`.
+2. **2–8s — the tension.** "I gave it one prompt. Watch."
+3. **8–45s — the demo.** Show the agent *doing the work*. Speed up dead time 2–4×.
+4. **end — payoff + soft CTA.** "Open-sourcing this at astroignite.dev. Follow for more."
+
+### Production
+- **Tools:** Screen Studio (auto-zoom + smooth cursor — ideal for agent demos),
+  CleanShot X, or OBS (free). For editing/captions: CapCut or Descript.
+- **Burn in captions.** Most people watch muted — on-screen text is non-negotiable
+  for completion. Descript/CapCut auto-caption.
+- **Zoom on the action.** Tiny terminal text loses viewers; zoom to what matters.
+- **Show, don't narrate.** Let the agent's output be the star; keep talking minimal.
+- **Custom thumbnail / first frame** that states the payoff in text.
+
+### Pair every video with a text hook
+The post text above the video does its own ranking work (drives the click).
+Lead with the result in words too: *"I gave one prompt and an agent shipped a
+full app. 40 seconds 👇"* — then the native video.
+
+### Feed it into the system
+Log `avg_watch_seconds` and `video_length_seconds`; the optimizer computes
+completion %. If completion is low, your hook or length is wrong — fix one and
+re-test next week.
 
